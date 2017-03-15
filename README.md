@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Major Webscraping for OIE
 
 **Language**: `Python v3.5`
@@ -20,9 +19,3 @@
 5. From that link go to specific tags(`div` -> `section` -> `p`)
 6. Grab all the present link and parse it if it has `#`.
 7. After that write it.
-=======
-# OIE-Major_webscraping
-Webscraping project to gather information about majors and its corresponding required courses
-
-Using `BeautifulSoup` and few other things.
->>>>>>> origin/master
