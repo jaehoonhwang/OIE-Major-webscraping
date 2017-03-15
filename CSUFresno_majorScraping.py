@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
 import urllib.request
-import os, csv
+import os
+import csv
+
 
 def main():
     # Base URLs
@@ -19,7 +21,8 @@ def main():
     # Other call for this one: soup.find_all('element', limit=n) | n=1
     div_mccf = soup.find('div', class_="main-content clearfix")
 
-    # Find first instance of 'ul' and give all of 'li' within that specific 'li'
+    # Find first instance of 'ul' and give all of 'li' within that specific
+    # 'li'
     li_list = div_mccf.find_next('ul').find_all('li')
 
     # Create 'degree_list' to store text and href
@@ -36,18 +39,31 @@ def main():
         else:
             degree_list[element.text]["Link"] = None
 
-    major_courses= {}
-
     # Test for one major and parsing necessary information
     for major_dict in degree_list.keys():
-        print (major_dict)
         major_name = degree_list[major_dict]["Major"]
         major_link = degree_list[major_dict]["Link"]
         if major_link:
-            major_courses[major_name] = readMajor(major_link)
+            degree_list[major_dict]["Courses"] = readMajor(
+                major_link, major_name)
+
+    writeCSV("requiredcourses.csv", degree_list=degree_list)
 
 
-def readMajor(link):
+def writeCSV(name, degree_list):
+    with open(name, "w") as toWrite:
+        writer = csv.writer(toWrite, delimiter=",", lineterminator='\n')
+        writer.writerow(["Major", "Courses"])
+        for major in degree_list.keys():
+            if "Courses" in degree_list[major] and degree_list[major]["Courses"]:
+                for required_courses in degree_list[major]["Courses"]:
+                    writer.writerow([degree_list[major]["Major"],
+                                     required_courses])
+            else:
+                writer.writerow([degree_list[major], "Error"])
+
+
+def readMajor(link, major_name):
     """
     :param link:string of major url
     :return: list of courses
@@ -56,17 +72,25 @@ def readMajor(link):
     readAFRShtml = urllib.request.Request(link,
                                           headers={'User-Agent': 'Mozilla/5.0'})
 
-    readAFRS = urllib.request.urlopen(readAFRShtml).read()
+    try:
+        readAFRS = urllib.request.urlopen(readAFRShtml).read()
+    except Exception:
+        # print (major_name)
+        return
+
     soupAFRS = BeautifulSoup(readAFRS, "lxml")
 
-    # Find HTML tags with "div" with class as "tabs minimal hide-title cross-fade"
-    div_AFRS = soupAFRS.findAll("div", class_="tabs minimal hide-title cross-fade")
+    # Find HTML tags with "div" with class as "tabs minimal hide-title
+    # cross-fade"
+    div_AFRS = soupAFRS.findAll(
+        "div", class_="tabs minimal hide-title cross-fade")
 
-    # After finding the all relevant "div" tag, find all "sections" within that tags
+    # After finding the all relevant "div" tag, find all "sections" within
+    # that tags
     sec_AFRS = div_AFRS[0].findAll("section")
 
     # TODO: Find better way to detect major requirements
-    req_AFRS = sec_AFRS[2] # Third element
+    req_AFRS = sec_AFRS[2]  # Third element
 
     # Find every tag "p", req_AFRS
     p_AFRS = req_AFRS.findAll("p")
@@ -76,24 +100,24 @@ def readMajor(link):
     for p in p_AFRS:
         required_tagsAFRS.append(p.findAll('a', href=True))
 
+    # Unmake the lists. (list of list -> list)
     required_aTag = ([x for sublist in required_tagsAFRS for x in sublist])
     required_links = []
 
+    # Grab all link present in required_aTag
     for element in required_aTag:
-        # for a in element:
         required_links.append(element["href"])
 
-    print (required_links)
     courses = []
 
+    # If link contains `#`, it means the course. Therefore, parse it and store
+    # string after `#`.
     for text in required_links:
-        print (text.split("#"))
         if '#' in text:
             courses.append(text.split("#")[1].upper())
 
-    print (courses)
-
     return courses
+
 
 if __name__ == "__main__":
     main()
