@@ -116,7 +116,7 @@ def readMajor(link, major_name):
         if '#' in text:
             courses.append(text.split("#")[1].upper())
 
-    return courses
+    return list(set(courses))
 
 
 if __name__ == "__main__":
